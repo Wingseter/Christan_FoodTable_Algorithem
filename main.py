@@ -1,3 +1,22 @@
+import sqlite3
+import openpyxl
+
+# sqlite 데이터베이스 연결하기
+dbpath = "foodTable.db"
+conn = sqlite3.connect(dbpath)
+
+# 테이블 생성하고 데이터 넣기
+cur = conn.cursor()
+
+cur.executescript("""
+CREATE TABLE IF NOT EXISTS student(
+    stu_id INTERGER PRIMARY KEY,
+    name TEXT,
+    church TEXT,
+    grade INTEGER
+)
+""")
+
 all_grade = list()
 count_grade = list()
 
@@ -60,15 +79,15 @@ all_table = list()
 for table in range(table_count):
     all_table.append(list())
 
+# TODO 삭제
 all_table[0].append(student[0])
 all_table[0].append(student[1])
 all_table[0].append(student[2])
 all_table[1].append(student[3])
 all_table[1].append(student[4])
 all_table[2].append(student[5])
-
 print(all_table[0])
 print(all_table[1])
 print(all_table[2])
 
-
+conn.close()
