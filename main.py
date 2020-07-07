@@ -30,18 +30,45 @@ grade_7 = list()
 
 
 # TODO: 엑셀에서 가져올 것이다
+filename = "명부샘플.xlsx"
+std_book = openpyxl.load_workbook(filename, read_only=True)
+std_sheet = std_book.worksheets[0]
+
+#  색상 학년 변환기
+def ColorConvert(color_hex):
+    color_dic = {
+        'FFCBCBFF': 1, #연보라
+        'FFD8FFD8': 2, #연초록
+        'FFFFFFCB': 3, #연노랑
+        'FFFFDEB2': 4, #연주황
+        'FFFFCBCB': 5, #연빨강
+        '00000000': 6, #하양
+        'FFFFD8FF': 7, #핑크
+        'FFFFFFFF': 6
+    }
+    return(color_dic[color_hex])
+
 student = list()
 
-student.append({'Name': "김철수1", 'grade': 1, 'church': "양영1"})
-student.append({'Name': "김철수1", 'grade': 1, 'church': "양영1"})
-student.append({'Name': "김철수1", 'grade': 1, 'church': "양영1"})
-student.append({'Name': "김철수2", 'grade': 2, 'church': "양영2"})
-student.append({'Name': "김철수3", 'grade': 3, 'church': "양영3"})
-student.append({'Name': "김철수4", 'grade': 4, 'church': "양영4"})
-student.append({'Name': "김철수5", 'grade': 5, 'church': "양영5"})
-student.append({'Name': "김철수6", 'grade': 6, 'church': "양영6"})
-student.append({'Name': "김철수7", 'grade': 7, 'church': "양영7"})
+# 시트의 각행 순서대로 추출해서 추가
+for i, row in enumerate(std_sheet.iter_rows()):
+    if i == 0:
+        continue
+    for cell in row :
+        original_text = str(cell.value)
+        if original_text == "None" or cell.fill is None:
+            continue
+        if original_text.find('(') == -1:
+            name = original_text
+            church = "없음"
+        else:
+            name = original_text[:original_text.find('(')]
+            church = original_text[original_text.index('(')+1:original_text.index(')')]
+        
+        grade = ColorConvert(cell.fill.start_color.index) 
+        student.append({'Name': name, 'grade': grade, 'church': church})
 
+# 학년별로 분류
 for item in student:
     if item['grade'] == 1:
         grade_1.append(item)
