@@ -6,9 +6,8 @@ import random
 dbpath = "foodTable.db"
 conn = sqlite3.connect(dbpath)
 
-# 테이블 생성하고 데이터 넣기
+# 테이블 생성하고 데이터 정의
 cur = conn.cursor()
-
 cur.executescript("""
 CREATE TABLE IF NOT EXISTS student(
 	"id" INTEGER,
@@ -20,15 +19,14 @@ CREATE TABLE IF NOT EXISTS student(
 """)
 
 cur.executescript("""
-CREATE TABLE IF NOT EXISTS student(
+CREATE TABLE IF NOT EXISTS seat(
 	"id" INTEGER,
 	"date" TEXT,
+	"seat" INTEGER,  
 	"stu_id" INTEGER,
 	PRIMARY KEY("id" AUTOINCREMENT)
 )
 """)
-
-
 
 
 all_grade = list()
@@ -84,9 +82,14 @@ for i, row in enumerate(std_sheet.iter_rows()):
 
         grade = ColorConvert(cell.fill.start_color.index)
         cur.execute(stuInsertSql, (name, grade, church, name, grade, church))
-        student.append({'Name': name, 'grade': grade, 'church': church})
 
-conn.commit()
+# 데이터 가져오기
+cur.execute("SELECT id, name, grade, church FROM student")
+stu_db_list = cur.fetchall()
+
+for it in stu_db_list:
+    student.append({'id': it[0] ,'Name': it[1], 'grade': it[2], 'church': it[3]})
+
 
 # 학년별로 분류
 for item in student:
@@ -127,13 +130,35 @@ all_table = list()
 for count in range(table_count):
     all_table.append(list())
 
-# TODO db로 대체
-past = list()
+# TODO 삭제
+seatInsertSql = ("""
+INSERT INTO seat(date ,seat, stu_id)
+VALUES(?, ?, ?);
+""")
+cur.execute(seatInsertSql, ("2020.1.1", 1, 1))
+cur.execute(seatInsertSql, ("2020.1.1", 1, 2))
+cur.execute(seatInsertSql, ("2020.1.1", 1, 3))
+cur.execute(seatInsertSql, ("2020.1.1", 2, 4))
+cur.execute(seatInsertSql, ("2020.1.1", 2, 5))
+cur.execute(seatInsertSql, ("2020.1.1", 2, 6))
+
+pastSearchSql = ("""
+SELECT stu_id FROM seat WHERE (seat.date, seat.seat) IN (
+    SELECT date, seat FROM seat WHERE stu_id = ? 
+);
+""")
+
+cur.execute(pastSearchSql, (6,))
+past_db_list = cur.fetchall()
+print(past_db_list)
 
 # 과거의 중복이 되었나?
-def timeMachine(stuHash, students):
-
-    return list()
+# def timeMachine(stuHash, table, students):
+#     tempList = stuHash[:]
+#     for i, student in zip(tempList, students):
+#         for member in table:
+#             1 = 1
+#     return list()
 
 # 같은 교회 출신인가
 def churchChecker(stuHash, table, students):
@@ -160,12 +185,13 @@ for i, grade in enumerate(all_grade):
     random.shuffle(grade)
 
 # TODO 삭제
-cur = conn.cursor()
-cur.execute("SELECT id, name, grade, church FROM student")
-stu_db_list = cur.fetchall()
+# cur = conn.cursor()
+# cur.execute("SELECT id, name, grade, church FROM student")
+# stu_db_list = cur.fetchall()
 
-for it in stu_db_list:
-    print(it)
-print(len(stu_db_list))
+# for it in stu_db_list:
+#     print(it)
+# print(len(stu_db_list))
 
+conn.commit()
 conn.close()
