@@ -1,5 +1,6 @@
 import sqlite3
 import openpyxl
+import random
 
 # sqlite 데이터베이스 연결하기
 dbpath = "foodTable.db"
@@ -18,7 +19,6 @@ CREATE TABLE IF NOT EXISTS student(
 """)
 
 all_grade = list()
-count_grade = list()
 
 grade_1 = list()
 grade_2 = list()
@@ -28,8 +28,6 @@ grade_5 = list()
 grade_6 = list()
 grade_7 = list()
 
-
-# TODO: 엑셀에서 가져올 것이다
 filename = "명부샘플.xlsx"
 std_book = openpyxl.load_workbook(filename, read_only=True)
 std_sheet = std_book.worksheets[0]
@@ -95,26 +93,83 @@ all_grade.append(grade_5)
 all_grade.append(grade_6)
 all_grade.append(grade_7)
 
-for i, item in enumerate(all_grade):
-    count_grade.append(len(item))
+count_grade = list()
 
+for i, grade in enumerate(all_grade):
+    count_grade.append(len(grade))
 # 테이블 개수
 table_count = max(count_grade)
 
 # 테이블 분류
 all_table = list()
-for table in range(table_count):
+for count in range(table_count):
     all_table.append(list())
 
+# TODO db로 대체
+past = list()
+
+# 과거의 중복이 되었나?
+def timeMachine(stuHash, students):
+    
+    return list()
+
+# 같은 교회 출신인가
+def churchChecker(stuHash, table, students):
+    assert(len(stuHash) == len(students))
+    tempList = stuHash[:]
+    for i, student in zip(tempList, students):
+        for member in table:
+            if student['church'] == member['church']:
+                stuHash.pop(i)
+
+    return stuHash
+
+# 가능한 모든 학생을 반환
+def availableStudent(table, student):
+    stuHash = list()
+    for i in range(len(student)):
+        stuHash.append(i)
+
+    churchChecker(stuHash, table, student)
+    return stuHash
+# # TODO 삭제
+#     for i in stuHash:
+#         print(student[i]) 
+#     return 
+
+# 학생 섞기
+for i, grade in enumerate(all_grade):
+    random.shuffle(grade)
+
 # TODO 삭제
+# availableStudent(all_table[0], student)
+# print(len(availableStudent(all_table[0], student)))
+print(student[0])
+print("==================")
 all_table[0].append(student[0])
-all_table[0].append(student[1])
-all_table[0].append(student[2])
-all_table[1].append(student[3])
-all_table[1].append(student[4])
-all_table[2].append(student[5])
-print(all_table[0])
-print(all_table[1])
-print(all_table[2])
+# print(len(availableStudent(all_table[0], student)))
+for i in availableStudent(all_table[0], student):
+    print(student[i])
+
+# # 테이블에 넣기
+# for table in all_table:
+#     table.append(grade_1.pop(random.randrange(0, count_grade[0] - 1)))
+#     table.append(grade_2.pop(random.randrange(0, count_grade[1] - 1)))
+#     table.append(grade_3.pop(random.randrange(0, count_grade[2] - 1)))
+#     table.append(grade_4.pop(random.randrange(0, count_grade[3] - 1)))
+#     table.append(grade_5.pop(random.randrange(0, count_grade[4] - 1)))
+#     table.append(grade_6.pop(random.randrange(0, count_grade[5] - 1)))
+#     table.append(grade_7.pop(random.randrange(0, count_grade[6] - 1)))
+
+# # TODO 삭제
+# all_table[0].append(student[0])
+# all_table[0].append(student[1])
+# all_table[0].append(student[2])
+# all_table[1].append(student[3])
+# all_table[1].append(student[4])
+# all_table[2].append(student[5])
+# print(all_table[0])
+# print(all_table[1])
+# print(all_table[2])
 
 conn.close()
