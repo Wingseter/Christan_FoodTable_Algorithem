@@ -11,12 +11,25 @@ cur = conn.cursor()
 
 cur.executescript("""
 CREATE TABLE IF NOT EXISTS student(
-    stu_id INTERGER PRIMARY KEY,
-    name TEXT,
-    church TEXT,
-    grade INTEGER
+	"id" INTEGER,
+	"name" TEXT,
+	"church" TEXT,
+	"grade" INTEGER,
+	PRIMARY KEY("id" AUTOINCREMENT)
 )
 """)
+
+cur.executescript("""
+CREATE TABLE IF NOT EXISTS student(
+	"id" INTEGER,
+	"date" TEXT,
+	"stu_id" INTEGER,
+	PRIMARY KEY("id" AUTOINCREMENT)
+)
+""")
+
+
+
 
 all_grade = list()
 
@@ -48,6 +61,12 @@ def ColorConvert(color_hex):
 
 student = list()
 
+stuInsertSql = ("""
+INSERT INTO student(name , grade, church)
+SELECT ?, ?, ?
+WHERE NOT EXISTS(SELECT 1 FROM student WHERE name = ? AND grade = ? AND church = ?);
+""")
+
 # 시트의 각행 순서대로 추출해서 추가
 for i, row in enumerate(std_sheet.iter_rows()):
     if i == 0:
@@ -62,9 +81,12 @@ for i, row in enumerate(std_sheet.iter_rows()):
         else:
             name = original_text[:original_text.find('(')]
             church = original_text[original_text.index('(')+1:original_text.index(')')]
-        
-        grade = ColorConvert(cell.fill.start_color.index) 
+
+        grade = ColorConvert(cell.fill.start_color.index)
+        cur.execute(stuInsertSql, (name, grade, church, name, grade, church))
         student.append({'Name': name, 'grade': grade, 'church': church})
+
+conn.commit()
 
 # 학년별로 분류
 for item in student:
@@ -110,7 +132,7 @@ past = list()
 
 # 과거의 중복이 되었나?
 def timeMachine(stuHash, students):
-    
+
     return list()
 
 # 같은 교회 출신인가
@@ -132,44 +154,18 @@ def availableStudent(table, student):
 
     churchChecker(stuHash, table, student)
     return stuHash
-# # TODO 삭제
-#     for i in stuHash:
-#         print(student[i]) 
-#     return 
 
 # 학생 섞기
 for i, grade in enumerate(all_grade):
     random.shuffle(grade)
 
 # TODO 삭제
-# availableStudent(all_table[0], student)
-# print(len(availableStudent(all_table[0], student)))
-print(student[0])
-print("==================")
-all_table[0].append(student[0])
-# print(len(availableStudent(all_table[0], student)))
-for i in availableStudent(all_table[0], student):
-    print(student[i])
+cur = conn.cursor()
+cur.execute("SELECT id, name, grade, church FROM student")
+stu_db_list = cur.fetchall()
 
-# # 테이블에 넣기
-# for table in all_table:
-#     table.append(grade_1.pop(random.randrange(0, count_grade[0] - 1)))
-#     table.append(grade_2.pop(random.randrange(0, count_grade[1] - 1)))
-#     table.append(grade_3.pop(random.randrange(0, count_grade[2] - 1)))
-#     table.append(grade_4.pop(random.randrange(0, count_grade[3] - 1)))
-#     table.append(grade_5.pop(random.randrange(0, count_grade[4] - 1)))
-#     table.append(grade_6.pop(random.randrange(0, count_grade[5] - 1)))
-#     table.append(grade_7.pop(random.randrange(0, count_grade[6] - 1)))
-
-# # TODO 삭제
-# all_table[0].append(student[0])
-# all_table[0].append(student[1])
-# all_table[0].append(student[2])
-# all_table[1].append(student[3])
-# all_table[1].append(student[4])
-# all_table[2].append(student[5])
-# print(all_table[0])
-# print(all_table[1])
-# print(all_table[2])
+for it in stu_db_list:
+    print(it)
+print(len(stu_db_list))
 
 conn.close()
