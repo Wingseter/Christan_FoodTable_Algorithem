@@ -64,6 +64,10 @@ INSERT INTO student(name , grade, church)
 SELECT ?, ?, ?
 WHERE NOT EXISTS(SELECT 1 FROM student WHERE name = ? AND grade = ? AND church = ?);
 """)
+# id 가져오기
+idSearchSql = ("""
+    SELECT id FROM student WHERE name = ? AND grade = ? AND church = ?
+""")
 
 # 시트의 각행 순서대로 추출해서 추가
 for i, row in enumerate(std_sheet.iter_rows()):
@@ -83,13 +87,10 @@ for i, row in enumerate(std_sheet.iter_rows()):
         grade = ColorConvert(cell.fill.start_color.index)
         cur.execute(stuInsertSql, (name, grade, church, name, grade, church))
 
-# 데이터 가져오기
-cur.execute("SELECT id, name, grade, church FROM student")
-stu_db_list = cur.fetchall()
-
-for it in stu_db_list:
-    student.append({'id': it[0] ,'Name': it[1], 'grade': it[2], 'church': it[3]})
-
+        # 바로 데이터 가져오기
+        cur.execute(idSearchSql, (name, grade, church))
+        stu_id = cur.fetchall()
+        student.append({'id': stu_id[0] ,'Name':name, 'grade': grade, 'church': church})  
 
 # 학년별로 분류
 for item in student:
@@ -130,17 +131,14 @@ all_table = list()
 for count in range(table_count):
     all_table.append(list())
 
-# TODO 삭제
+
 seatInsertSql = ("""
 INSERT INTO seat(date ,seat, stu_id)
 VALUES(?, ?, ?);
 """)
-cur.execute(seatInsertSql, ("2020.1.1", 1, 1))
-cur.execute(seatInsertSql, ("2020.1.1", 1, 2))
-cur.execute(seatInsertSql, ("2020.1.1", 1, 3))
-cur.execute(seatInsertSql, ("2020.1.1", 2, 4))
-cur.execute(seatInsertSql, ("2020.1.1", 2, 5))
-cur.execute(seatInsertSql, ("2020.1.1", 2, 6))
+deleteInsertSql = ("""
+DELETE FROM seat WHERE date = ? AND seat = ? AND stu_id = ?
+""")
 
 pastSearchSql = ("""
 SELECT stu_id FROM seat WHERE (seat.date, seat.seat) IN (
@@ -148,50 +146,74 @@ SELECT stu_id FROM seat WHERE (seat.date, seat.seat) IN (
 );
 """)
 
-cur.execute(pastSearchSql, (6,))
-past_db_list = cur.fetchall()
-print(past_db_list)
+# TODO 삭제
+# cur.execute(seatInsertSql, ("2020.1.1", 1, 1))
+# cur.execute(seatInsertSql, ("2020.1.1", 1, 2))
+# cur.execute(seatInsertSql, ("2020.1.1", 1, 3))
+# cur.execute(seatInsertSql, ("2020.1.1", 2, 4))
+# cur.execute(seatInsertSql, ("2020.1.1", 2, 5))
+# cur.execute(seatInsertSql, ("2020.1.1", 2, 6))
+# cur.execute(deleteInsertSql, ("2020.1.1", 1, 1))
+# cur.execute(deleteInsertSql, ("2020.1.1", 1, 2))
+# cur.execute(deleteInsertSql, ("2020.1.1", 1, 3))
+# cur.execute(deleteInsertSql, ("2020.1.1", 2, 4))
+# cur.execute(deleteInsertSql, ("2020.1.1", 2, 5))
+# cur.execute(deleteInsertSql, ("2020.1.1", 2, 6))
 
 # 과거의 중복이 되었나?
-# def timeMachine(stuHash, table, students):
-#     tempList = stuHash[:]
-#     for i, student in zip(tempList, students):
-#         for member in table:
-#             1 = 1
-#     return list()
+def timeMachine(stuHash, table, students):
+    for member in table: # for-1
+        cur.execute(pastSearchSql, (member['id'][0],))
+        past_db_list = cur.fetchall()
+        # TODO 진짜 이것밖에 답이 없나 고민해 보자
+        for past in past_db_list: # for-2
+            for student in students: # for-3
+                try:
+                    if student['id'][0] == past[0]:
+                        stuHash.remove(past[0])
+                except Exception:
+                    continue
+    return stuHash
+
+# 같은 학년인가?
+def gradeChecker(stuHash, table, students):
+    for student in students:
+        for member in table:
+            try:
+                if student['grade'] == member['grade']:
+                    stuHash.remove(student['id'][0])
+            except Exception:
+                continue
+
+    return stuHash
 
 # 같은 교회 출신인가
 def churchChecker(stuHash, table, students):
-    assert(len(stuHash) == len(students))
-    tempList = stuHash[:]
-    for i, student in zip(tempList, students):
+    for student in students:
         for member in table:
             if student['church'] == member['church']:
-                stuHash.pop(i)
-
+                try:
+                    stuHash.remove(student['id'][0])
+                except Exception:
+                    continue
     return stuHash
 
 # 가능한 모든 학생을 반환
 def availableStudent(table, student):
     stuHash = list()
-    for i in range(len(student)):
-        stuHash.append(i)
-
+    for it in student:
+        stuHash.append(it['id'][0])
+    assert(len(stuHash) == len(student))
     churchChecker(stuHash, table, student)
+    gradeChecker(stuHash, table, student)
+    timeMachine(stuHash, table, student)
     return stuHash
 
 # 학생 섞기
 for i, grade in enumerate(all_grade):
     random.shuffle(grade)
 
-# TODO 삭제
-# cur = conn.cursor()
-# cur.execute("SELECT id, name, grade, church FROM student")
-# stu_db_list = cur.fetchall()
-
-# for it in stu_db_list:
-#     print(it)
-# print(len(stu_db_list))
-
+all_table[0].append(student[0])
+availableStudent(all_table[0], student)
 conn.commit()
 conn.close()
