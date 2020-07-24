@@ -136,6 +136,7 @@ seatInsertSql = ("""
 INSERT INTO seat(date ,seat, stu_id)
 VALUES(?, ?, ?);
 """)
+
 deleteInsertSql = ("""
 DELETE FROM seat WHERE date = ? AND seat = ? AND stu_id = ?
 """)
