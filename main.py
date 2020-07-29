@@ -9,10 +9,28 @@ root = Tk()
 root.title("자리 배치 v1.0")
 root.geometry("1480x820")
 
+# 변수 목록
+student = list() # 전체 학생
+available_student = list() # 가능한 학생
+
+
+count_grade = list() # 각 학년의 학생수
+
+table_list_box = list() # 테이블 전체
+all_table = list() 
+# DB 연결 목록
+dbpath = "foodTable.db"
+conn = sqlite3.connect(dbpath)
+cur = conn.cursor()
 
 # 전체 학생 삭제
 def clear_all_student_list():
     all_student_list.delete(0, END)
+    student.clear()
+
+# 가능한 학생 삭제
+def clear_available_student_list():
+    available_student_list.delete(0, END)
 
 #  색상 학년 변환기
 def ColorConvert(color_hex):
@@ -24,15 +42,12 @@ def ColorConvert(color_hex):
         'FFFFCBCB': 5,  # 연빨강
         '00000000': 6,  # 하양
         'FFFFD8FF': 7,  # 핑크
-        'FFFFFFFF': 6
+        'FFFFFFFF': 6   # 엑셀 실수 방지용 하얀색
     }
     return(color_dic[color_hex])
 
+# 엑셀 데이터 불러오기
 def load_excel_data():
-    dbpath = "foodTable.db"
-    conn = sqlite3.connect(dbpath)
-    cur = conn.cursor()
-
     # sqlite 데이터베이스 연결하기
     cur.executescript("""
     CREATE TABLE IF NOT EXISTS student(
@@ -53,22 +68,12 @@ def load_excel_data():
         PRIMARY KEY("id" AUTOINCREMENT)
     )
     """)
-    all_grade = list()
 
-    grade_1 = list()
-    grade_2 = list()
-    grade_3 = list()
-    grade_4 = list()
-    grade_5 = list()
-    grade_6 = list()
-    grade_7 = list()
 
     filename = "명부샘플.xlsx"
     std_book = openpyxl.load_workbook(filename, read_only=True)
     std_sheet = std_book.worksheets[0]
 
-
-    student = list()
 
     stuInsertSql = ("""
     INSERT INTO student(name , grade, church)
@@ -79,6 +84,9 @@ def load_excel_data():
     idSearchSql = ("""
         SELECT id FROM student WHERE name = ? AND grade = ? AND church = ?
     """)
+
+    clear_all_student_list()
+    student
 
     # 시트의 각행 순서대로 추출해서 추가
     for i, row in enumerate(std_sheet.iter_rows()):
@@ -104,11 +112,19 @@ def load_excel_data():
             stu_id = cur.fetchall()
             student.append(
                 {'id': stu_id[0], 'Name': name, 'grade': grade, 'church': church})
-                
-    clear_all_student_list()
+
     for stu in student:
         all_student_list.insert(END, str(stu['grade']) + "/" +stu['Name'] + "/"+ stu['church'])
-        print(str(stu['grade']) + "/" +stu['Name'] + "/"+ stu['church'])
+
+    all_grade = list() # 모든 학년
+
+    grade_1 = list() # 1학년
+    grade_2 = list() # 2학년
+    grade_3 = list() # 3학년
+    grade_4 = list() # 4학년
+    grade_5 = list() # 5학년
+    grade_6 = list() # 6학년
+    grade_7 = list() # 7학년
 
     # 학년별로 분류
     for item in student:
@@ -137,19 +153,18 @@ def load_excel_data():
     all_grade.append(grade_6)
     all_grade.append(grade_7)
 
-    count_grade = list()
-
     for i, grade in enumerate(all_grade):
         count_grade.append(len(grade))
     # 테이블 개수
     table_count = max(count_grade)
 
     # 테이블 분류
-    all_table = list()
+    all_table
+
     for count in range(table_count):
         all_table.append(list())
 
-    table_list = list()
+    table_list_box
 
     # 테이블 목록들
     for j in range(1, table_count+1):
@@ -169,11 +184,93 @@ def load_excel_data():
 
         select_table_btn = Button(
             each_five_table, text=str(j) + "번", width="3")
+        select_table_btn.configure(command=lambda button=select_table_btn: table_button_action(button))
         select_table_btn.pack(side="left", ipady="40")
 
-        table_list.insert(j, listbox_temp)
+        table_list_box.insert(j, listbox_temp)
         listbox_temp.pack(side="left", padx=(0, 10))
-        
+
+####################################################################################################################################################
+####################################################################################################################################################
+# 가능한 학생 계산기#################################################################################################################################
+####################################################################################################################################################
+####################################################################################################################################################
+seatInsertSql = ("""
+INSERT INTO seat(date ,seat, stu_id)
+VALUES(?, ?, ?);
+""")
+
+deleteInsertSql = ("""
+DELETE FROM seat WHERE date = ? AND seat = ? AND stu_id = ?
+""")
+
+pastSearchSql = ("""
+SELECT stu_id FROM seat WHERE (seat.date, seat.seat) IN (
+    SELECT date, seat FROM seat WHERE stu_id = ? 
+);
+""")
+
+# 과거의 중복이 되었나?
+def timeMachine(stuHash, table, students):
+    for member in table: # for-1
+        cur.execute(pastSearchSql, (member['id'][0],))
+        past_db_list = cur.fetchall()
+        # TODO 진짜 이것밖에 답이 없나 고민해 보자
+        for past in past_db_list: # for-2
+            for stu in students: # for-3
+                try:
+                    if stu['id'][0] == past[0]:
+                        stuHash.remove(past[0])
+                except Exception:
+                    continue
+    return stuHash
+
+# 같은 학년인가?
+def gradeChecker(stuHash, table, students):
+    for stu in students:
+        for member in table:
+            try:
+                if stu['grade'] == member['grade']:
+                    stuHash.remove(stu['id'][0])
+            except Exception:
+                continue
+
+    return stuHash
+
+# 같은 교회 출신인가
+def churchChecker(stuHash, table, students):
+    for stu in students:
+        for member in table:
+            print(type(member))
+            if stu['church'] == member['church']:
+                try:
+                    stuHash.remove(stu['id'][0])
+                except Exception:
+                    continue
+    return stuHash
+
+# 가능한 모든 학생을 반환
+def availableStudent(table, student):
+    stuHash = list()
+    for it in student:
+        stuHash.append(it['id'][0])
+    assert(len(stuHash) == len(student))
+    churchChecker(stuHash, table, student)
+    gradeChecker(stuHash, table, student)
+    timeMachine(stuHash, table, student)
+    return stuHash
+
+def find_available_student(number):
+    student
+    available = availableStudent(all_table[int(number)], student)
+    print(available)
+
+
+def table_button_action(button):
+    table_num = button.cget("text")
+    table_num = table_num[:table_num.index("번")]
+    selected_table.configure(text=table_num)
+    find_available_student(table_num)
 
 def menucmd1():
     print("menu command")
@@ -297,7 +394,8 @@ insert_stu_btn = Button(
 insert_stu_btn.pack(side="top")
 
 Label(available_frame, text="선택된 테이블: ").pack(side="left")
-Label(available_frame, text="1").pack(side="left")
+selected_table = Label(available_frame, text="1")
+selected_table.pack(side="left")
 Label(available_frame, text="번").pack(side="left")
 
 # Todo 삭제
@@ -337,5 +435,8 @@ root.config(menu=menu)
 
 root.resizable(False, False)
 root.mainloop()
+
+conn.commit()
+conn.close()
 
 
