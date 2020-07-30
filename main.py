@@ -3,7 +3,7 @@ import tkinter.ttk as ttk
 import sqlite3
 import openpyxl
 import random
-
+import tkinter.messagebox as msgbox
 root = Tk()
 
 root.title("자리 배치 v1.0")
@@ -20,6 +20,7 @@ available_student = list() # 가능한 학생
 count_grade = list() # 각 학년의 학생수
 table_list_box = list() # 테이블 전체 리스트 박스 모음
 all_table = list()  # 모든 테이블 전체 데이터
+is_student_loaded = False # 학생 로딩
 
 # DB 연결 목록
 dbpath = "foodTable.db"
@@ -49,10 +50,25 @@ def all_student_insert():
     pass
 
 def available_student_insert():
+    student
     table_num = int(selected_table.cget("text")) - 1
+    # 예외 처리
+    if table_list_box[table_num].size() > 6:
+        msgbox.showinfo("배치 불가", "7명이 넘었어요!")
+        return
     student_selected = available_student_list.curselection()[0]
     insert = available_student_list.get(student_selected)
     table_list_box[table_num].insert(END, insert)
+
+    index = all_student_list.get(0, END).index(insert)
+    all_student_list.delete(index)
+    student.pop(index)
+    print(student)
+    available_student_action()
+
+# 강제 삽입 어라?
+def force_student_insert():
+    pass
 
 def clear_table():
     table_num = int(selected_table.cget("text")) - 1
@@ -304,6 +320,16 @@ def table_button_action(button):
             if stu['id'][0] == pick:
                 available_student_list.insert(END, str(stu['grade']) + "/" +stu['Name'] + "/"+ stu['church'])
 
+def available_student_action():
+    student
+    number = selected_table.cget("text")
+    available = availableStudent(all_table[int(number)], student)
+    clear_available_student_list()
+    for stu in student:
+        for pick in available: 
+            if stu['id'][0] == pick:
+                available_student_list.insert(END, str(stu['grade']) + "/" +stu['Name'] + "/"+ stu['church'])
+
 def menucmd1():
     print("menu command")
 
@@ -373,7 +399,7 @@ delete_history_btn.pack(side="top")
 
 # 메인창-> 우측 -> 전채 학생 목록
 all_frame = LabelFrame(
-    root, text="전채 학생", relief="solid", bd=1, padx=1, pady=1)
+    root, text="남은 전채 학생", relief="solid", bd=1, padx=1, pady=1)
 all_frame.pack(side="right", fill="both", padx=5, pady=5)
 
 # 전체 학생 리스트 박스
