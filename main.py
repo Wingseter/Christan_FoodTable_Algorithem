@@ -9,19 +9,29 @@ root = Tk()
 root.title("자리 배치 v1.0")
 root.geometry("1480x820")
 
+##################################################################################################################################################
+##################################################################################################################################################
 # 변수 목록
+##################################################################################################################################################
+##################################################################################################################################################
+
 student = list() # 전체 학생
 available_student = list() # 가능한 학생
-
-
 count_grade = list() # 각 학년의 학생수
+table_list_box = list() # 테이블 전체 리스트 박스 모음
+all_table = list()  # 모든 테이블 전체 데이터
 
-table_list_box = list() # 테이블 전체
-all_table = list() 
 # DB 연결 목록
 dbpath = "foodTable.db"
 conn = sqlite3.connect(dbpath)
 cur = conn.cursor()
+
+##################################################################################################################################################
+##################################################################################################################################################
+# 기타 기능 모음  #################################################################################################################################
+##################################################################################################################################################
+##################################################################################################################################################
+
 
 # 전체 학생 삭제
 def clear_all_student_list():
@@ -31,6 +41,22 @@ def clear_all_student_list():
 # 가능한 학생 삭제
 def clear_available_student_list():
     available_student_list.delete(0, END)
+
+def all_student_pop():
+    pass
+
+def all_student_insert():
+    pass
+
+def available_student_insert():
+    table_num = int(selected_table.cget("text")) - 1
+    student_selected = available_student_list.curselection()[0]
+    insert = available_student_list.get(student_selected)
+    table_list_box[table_num].insert(END, insert)
+
+def clear_table():
+    table_num = int(selected_table.cget("text")) - 1
+    table_list_box[table_num].delete(0, END)
 
 #  색상 학년 변환기
 def ColorConvert(color_hex):
@@ -46,7 +72,12 @@ def ColorConvert(color_hex):
     }
     return(color_dic[color_hex])
 
-# 엑셀 데이터 불러오기
+##################################################################################################################################################
+##################################################################################################################################################
+# 엑셀 데이터 불러오기 ############################################################################################################################
+##################################################################################################################################################
+##################################################################################################################################################
+
 def load_excel_data():
     # sqlite 데이터베이스 연결하기
     cur.executescript("""
@@ -80,6 +111,7 @@ def load_excel_data():
     SELECT ?, ?, ?
     WHERE NOT EXISTS(SELECT 1 FROM student WHERE name = ? AND grade = ? AND church = ?);
     """)
+
     # id 가져오기
     idSearchSql = ("""
         SELECT id FROM student WHERE name = ? AND grade = ? AND church = ?
@@ -179,9 +211,6 @@ def load_excel_data():
         listbox_temp = Listbox(
             each_five_table, selectmode="extended", height=7)
 
-        for i in range(1, 8):
-            listbox_temp.insert(END, str(i))
-
         select_table_btn = Button(
             each_five_table, text=str(j) + "번", width="3")
         select_table_btn.configure(command=lambda button=select_table_btn: table_button_action(button))
@@ -260,17 +289,20 @@ def availableStudent(table, student):
     timeMachine(stuHash, table, student)
     return stuHash
 
-def find_available_student(number):
-    student
-    available = availableStudent(all_table[int(number)], student)
-    print(available)
-
 
 def table_button_action(button):
+    student
+
     table_num = button.cget("text")
     table_num = table_num[:table_num.index("번")]
     selected_table.configure(text=table_num)
-    find_available_student(table_num)
+    available = availableStudent(all_table[int(table_num)], student)
+    
+    clear_available_student_list()
+    for stu in student:
+        for pick in available: 
+            if stu['id'][0] == pick:
+                available_student_list.insert(END, str(stu['grade']) + "/" +stu['Name'] + "/"+ stu['church'])
 
 def menucmd1():
     print("menu command")
@@ -278,6 +310,7 @@ def menucmd1():
 # 파일 불러오기
 def add_file():
     pass
+
 
 ##################################################################################################################################################
 ##################################################################################################################################################
@@ -390,7 +423,7 @@ available_scroll_bar.config(command=available_student_list.yview)
 available_student_list.pack(side="top")
 
 insert_stu_btn = Button(
-    available_frame, text="학생 배치", padx=5, pady=3, width=7)
+    available_frame, text="학생 배치", padx=5, pady=3, width=7, command=available_student_insert)
 insert_stu_btn.pack(side="top")
 
 Label(available_frame, text="선택된 테이블: ").pack(side="left")
