@@ -22,6 +22,7 @@ count_grade = list() # 각 학년의 학생수
 table_list_box = list() # 테이블 전체 리스트 박스 모음
 all_table = list()  # 모든 테이블 전체 데이터
 is_student_loaded = False # 학생 로딩
+all_grade = list() # 모든 학년
 
 # DB 연결 목록
 dbpath = "foodTable.db"
@@ -53,6 +54,8 @@ def all_student_insert():
 def available_student_insert():
     student
     all_table
+    count_grade
+    all_grade
 
     table_num = int(selected_table.cget("text")) - 1
     # 예외 처리
@@ -64,8 +67,19 @@ def available_student_insert():
     table_list_box[table_num].insert(END, insert)
 
     index = all_student_list.get(0, END).index(insert)
+
+    # 카운터 업데이트
+    grade_selection = student[index]['grade']
+    count_grade[grade_selection - 1] -= 1
+    for i, grade in enumerate(all_grade[grade_selection]):
+        if student[index]['id'] == grade['id']:
+           grade.pop(i)
+
     all_table[table_num].append(student.pop(index))
     all_student_list.delete(index)
+
+    
+
     available_student_action()
 
 # 강제 삽입 어라?
@@ -90,15 +104,33 @@ def ColorConvert(color_hex):
     }
     return(color_dic[color_hex])
 
+
 ##################################################################################################################################################
 ##################################################################################################################################################
-# 엑셀 데이터 불러오기 ############################################################################################################################
+# SQL Collection #################################################################################################################################
 ##################################################################################################################################################
 ##################################################################################################################################################
 
-def load_excel_data():
-    # sqlite 데이터베이스 연결하기
-    cur.executescript("""
+# 자리 추가
+seatInsertSql = ("""
+INSERT INTO seat(date ,seat, stu_id)
+VALUES(?, ?, ?);
+""")
+
+# 자리 빼기
+deleteInsertSql = ("""
+DELETE FROM seat WHERE date = ? AND seat = ? AND stu_id = ?
+""")
+
+# 과거 같이 했던 사람들 찾기
+pastSearchSql = ("""
+SELECT stu_id FROM seat WHERE (seat.date, seat.seat) IN (
+    SELECT date, seat FROM seat WHERE stu_id = ? 
+);
+""")
+
+# 학생 테이블 만들기
+studentTableCreateSql = ("""
     CREATE TABLE IF NOT EXISTS student(
         "id" INTEGER,
         "name" TEXT,
@@ -106,35 +138,64 @@ def load_excel_data():
         "grade" INTEGER,
         PRIMARY KEY("id" AUTOINCREMENT)
     )
-    """)
+""")
 
-    cur.executescript("""
+# 자리 테이블 만들기
+seatTableCreateSql = ("""
     CREATE TABLE IF NOT EXISTS seat(
         "id" INTEGER,
-        "date" TEXT,
+        "date" INTEGER,
         "seat" INTEGER,  
         "stu_id" INTEGER,
         PRIMARY KEY("id" AUTOINCREMENT)
     )
-    """)
+""")
+
+# 날자 저장 테이블 만들기
+dateTableCreateSql = ("""
+    CREATE TABLE IF NOT EXISTS date(
+        "id" INTEGER,
+        "date" TEXT,
+        PRIMARY KEY("id" AUTOINCREMENT)
+    )
+""")
+
+# 학생 입력하기
+stuInsertSql = ("""
+    INSERT INTO student(name , grade, church)
+    SELECT ?, ?, ?
+    WHERE NOT EXISTS(SELECT 1 FROM student WHERE name = ? AND grade = ? AND church = ?);
+""")
+
+# id 가져오기
+idSearchSql = ("""
+    SELECT id FROM student WHERE name = ? AND grade = ? AND church = ?
+""")
+
+# 데이터 저장하기
+def save_seat_to_db():
+    all_table
+
+
+##################################################################################################################################################
+##################################################################################################################################################
+# 엑셀 데이터 불러오기 ############################################################################################################################
+##################################################################################################################################################
+##################################################################################################################################################
+
+def load_excel_data():
+
+    # sqlite 데이터베이스 연결하기
+    cur.executescript(studentTableCreateSql)
+
+    cur.executescript(seatTableCreateSql)
+
+    cur.executescript(dateTableCreateSql)
 
 
     filename = "명부샘플.xlsx"
     std_book = openpyxl.load_workbook(filename, read_only=True)
     std_sheet = std_book.worksheets[0]
-
-
-
-    stuInsertSql = ("""
-    INSERT INTO student(name , grade, church)
-    SELECT ?, ?, ?
-    WHERE NOT EXISTS(SELECT 1 FROM student WHERE name = ? AND grade = ? AND church = ?);
-    """)
-
-    # id 가져오기
-    idSearchSql = ("""
-        SELECT id FROM student WHERE name = ? AND grade = ? AND church = ?
-    """)
 
     clear_all_student_list()
     student
@@ -167,7 +228,7 @@ def load_excel_data():
     for stu in student:
         all_student_list.insert(END, str(stu['grade']) + "/" +stu['Name'] + "/"+ stu['church'])
 
-    all_grade = list() # 모든 학년
+    all_grade
 
     grade_1 = list() # 1학년
     grade_2 = list() # 2학년
@@ -243,27 +304,13 @@ def load_excel_data():
 # 가능한 학생 계산기#################################################################################################################################
 ####################################################################################################################################################
 ####################################################################################################################################################
-seatInsertSql = ("""
-INSERT INTO seat(date ,seat, stu_id)
-VALUES(?, ?, ?);
-""")
-
-deleteInsertSql = ("""
-DELETE FROM seat WHERE date = ? AND seat = ? AND stu_id = ?
-""")
-
-pastSearchSql = ("""
-SELECT stu_id FROM seat WHERE (seat.date, seat.seat) IN (
-    SELECT date, seat FROM seat WHERE stu_id = ? 
-);
-""")
 
 # 과거의 중복이 되었나?
 def timeMachine(stuHash, table, students):
     for member in table: # for-1
         cur.execute(pastSearchSql, (member['id'][0],))
         past_db_list = cur.fetchall()
-        # TODO 진짜 이것밖에 답이 없나 고민해 보자
+
         for past in past_db_list: # for-2
             for stu in students: # for-3
                 try:
@@ -278,7 +325,9 @@ def gradeChecker(stuHash, table, students):
     for stu in students:
         for member in table:
             try:
-                if stu['grade'] == member['grade']:
+                if stu['grade'] == 200:
+                    pass
+                elif stu['grade'] == member['grade']:
                     stuHash.remove(stu['id'][0])
             except Exception:
                 continue
@@ -287,7 +336,6 @@ def gradeChecker(stuHash, table, students):
 
 # 같은 교회 출신인가
 def churchChecker(stuHash, table, students):
-    print(table)
     for stu in students:
         for member in table:
             if stu['church'] == member['church']:
@@ -334,12 +382,67 @@ def available_student_action():
             if stu['id'][0] == pick:
                 available_student_list.insert(END, str(stu['grade']) + "/" +stu['Name'] + "/"+ stu['church'])
 
-def menucmd1():]
+def menucmd1():
     print("menu command")
 
-# 파일 불러오기
-def add_file():
-    pass
+# 자동 편성 주사위
+def super_seat_dice_rolling():
+    count_grade
+    student
+    table_list_box
+    all_table
+    all_grade
+
+    # 모든 테이블에 돌아가면서
+    for table_num, each_table in enumerate(all_table):
+        if count_grade.count(max(count_grade)) == 7:
+            number_in_table =7
+        elif max(count_grade) - min(count_grade) >= 5: 
+            number_in_table =5
+        else:
+            number_in_table = 6 
+
+        # 학년 중복 방지용
+        no_duplicater = [1,2,3,4,5,6,7]
+
+        # 기존 입력 학생 중복 방지
+        for stu in each_table:
+            no_duplicater.pop(no_duplicater.index(stu['grade']))
+
+        if len(student) == 0 or max(count_grade) == 0:
+            break
+        # 각 테이블 자리를 채운다
+        for i in range(int(number_in_table-len(each_table))):
+            max_finder = list()
+            # 학년 중복 방지용
+            for pin in no_duplicater:
+                max_finder.append(count_grade[pin - 1])
+            grade_to_insert = no_duplicater.pop(max_finder.index(max(max_finder)))
+
+            
+            grade_pick = all_grade[grade_to_insert - 1]
+            available_search = availableStudent(each_table, grade_pick)
+            print(available_search)
+            print(len(available_search))
+            random_pick = available_search[random.randint(0,len(available_search)-1)]
+
+            for stu in student:
+                if stu['id'][0] == random_pick:
+                    pick = str(stu['grade']) + "/" +stu['Name'] + "/"+ stu['church']
+                    index = all_student_list.get(0, END).index(pick)
+                    # 카운터 업데이트
+                    grade_selection = student[index]['grade']
+                    count_grade[grade_selection - 1] -= 1
+                    for k, grade in enumerate(all_grade[grade_selection -1]):
+                        if student[index]['id'] == grade['id']:
+                            all_grade[grade_selection-1].pop(k)
+                    # 리스트 박스 업데이트
+                    table_list_box[table_num].insert(END, pick)
+                    each_table.append(student.pop(index))
+                    all_student_list.delete(index)
+ 
+
+    
 
 
 ##################################################################################################################################################
@@ -380,8 +483,7 @@ Button(brain_frame, text="파일 불러오기", command=load_excel_data).pack(si
 Button(brain_frame, text="파일 내보내기", state="disable").pack(
     side="left", padx=(10, 100))
 
-Button(brain_frame, text="자동 생성 주사위").pack(side="left", padx=10)
-Button(brain_frame, text="최종 결정 및 저장").pack(side="left", padx=10)
+Button(brain_frame, text="자동 생성 주사위" , command=super_seat_dice_rolling).pack(side="left", padx=10)
 progressbar = ttk.Progressbar(
     brain_frame, maximum=100, mode="determinate")
 progressbar.pack(side="right", padx=10)
@@ -398,6 +500,9 @@ history_date_list = Listbox(
     history_frame, selectmode="extended", height=30, yscrollcommand=history_scroll_bar.set)
 history_scroll_bar.config(command=history_date_list.yview)
 history_date_list.pack(side="top")
+
+
+Button(history_frame, text="최종 결정 및 저장", command=save_seat_to_db).pack(side="left", padx=10)
 
 load_history_btn = Button(
     history_frame, text="불러오기", padx=5, pady=3, width=7)
@@ -418,9 +523,6 @@ all_student_list = Listbox(
     all_frame, selectmode="extended", height=30, yscrollcommand=all_scroll_bar.set)
 all_scroll_bar.config(command=all_student_list.yview)
 all_student_list.pack(side="top")
-
-for i in range(1, 32):
-    all_student_list.insert(END, str(i))
 
 # 학생 추가 삭제
 name_text = Entry(all_frame, width=17)
@@ -462,13 +564,10 @@ insert_stu_btn = Button(
 insert_stu_btn.pack(side="top")
 
 Label(available_frame, text="선택된 테이블: ").pack(side="left")
-selected_table = Label(available_frame, text="1")
+selected_table = Label(available_frame, text="?")
 selected_table.pack(side="left")
 Label(available_frame, text="번").pack(side="left")
 
-# Todo 삭제
-for i in range(1, 32):
-    available_student_list.insert(END, str(i))
 
 # 메인창->좌측->테이블 목록
 ##############################################################
