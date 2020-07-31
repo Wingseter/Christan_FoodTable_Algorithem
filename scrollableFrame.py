@@ -1,8 +1,23 @@
-A = list()
+from tkinter import *
+import winsound
+from winsound import *
+from tkinter import messagebox
+import time
 
-def achanger():
-    A.append({'id':1, 'Name': '김철수', 'grade': 1, 'church': '교회'})
+#creamos la ventana
+
+raiz=Tk()
+
+raiz.title("MYRIAD ALLIANCE: ORIGINS")
+raiz.geometry("900x550")
+# raiz.resizable(0,0)
+# raiz.iconbitmap("C:\\Users\\shado\\Desktop\\Myadorigins\\descarga.ico")
+
+frameJugar = Frame()
+
+fondo = PhotoImage(file="background.png")
+background_label = Label(raiz, image=fondo)
+background_label.place(x=0, y=0, relwidth=1, relheight=1)
 
 
-achanger()
-print(A[0]['id'])
+raiz.mainloop()

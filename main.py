@@ -9,6 +9,7 @@ root = Tk()
 root.title("자리 배치 v1.0")
 root.geometry("1480x820")
 
+
 ##################################################################################################################################################
 ##################################################################################################################################################
 # 변수 목록
@@ -51,6 +52,8 @@ def all_student_insert():
 
 def available_student_insert():
     student
+    all_table
+
     table_num = int(selected_table.cget("text")) - 1
     # 예외 처리
     if table_list_box[table_num].size() > 6:
@@ -61,9 +64,8 @@ def available_student_insert():
     table_list_box[table_num].insert(END, insert)
 
     index = all_student_list.get(0, END).index(insert)
+    all_table[table_num].append(student.pop(index))
     all_student_list.delete(index)
-    student.pop(index)
-    print(student)
     available_student_action()
 
 # 강제 삽입 어라?
@@ -120,6 +122,7 @@ def load_excel_data():
     filename = "명부샘플.xlsx"
     std_book = openpyxl.load_workbook(filename, read_only=True)
     std_sheet = std_book.worksheets[0]
+
 
 
     stuInsertSql = ("""
@@ -284,9 +287,9 @@ def gradeChecker(stuHash, table, students):
 
 # 같은 교회 출신인가
 def churchChecker(stuHash, table, students):
+    print(table)
     for stu in students:
         for member in table:
-            print(type(member))
             if stu['church'] == member['church']:
                 try:
                     stuHash.remove(stu['id'][0])
@@ -308,11 +311,12 @@ def availableStudent(table, student):
 
 def table_button_action(button):
     student
+    all_table
 
     table_num = button.cget("text")
     table_num = table_num[:table_num.index("번")]
     selected_table.configure(text=table_num)
-    available = availableStudent(all_table[int(table_num)], student)
+    available = availableStudent(all_table[int(table_num)-1], student)
     
     clear_available_student_list()
     for stu in student:
@@ -322,15 +326,15 @@ def table_button_action(button):
 
 def available_student_action():
     student
-    number = selected_table.cget("text")
-    available = availableStudent(all_table[int(number)], student)
+    number = int(selected_table.cget("text")) -1
+    available = availableStudent(all_table[number], student)
     clear_available_student_list()
     for stu in student:
         for pick in available: 
             if stu['id'][0] == pick:
                 available_student_list.insert(END, str(stu['grade']) + "/" +stu['Name'] + "/"+ stu['church'])
 
-def menucmd1():
+def menucmd1():]
     print("menu command")
 
 # 파일 불러오기
@@ -344,6 +348,11 @@ def add_file():
 ##################################################################################################################################################
 ##################################################################################################################################################
 menu = Menu(root)
+
+fondo = PhotoImage(file="background.png")
+background_label = Label(root, image=fondo)
+background_label.place(x=0, y=0, relwidth=1, relheight=1)
+
 
 # 메뉴->파일
 menu_file = Menu(menu, tearoff=0)
@@ -483,6 +492,8 @@ table_scroll.pack(side="right", fill="y")
 canvas.pack(side="left")
 canvas.create_window((0, 0), window=t_frame, anchor='nw')
 t_frame.bind("<Configure>", scroll_configure)
+
+
 
 ##################################################################################################################################################
 ##################################################################################################################################################
