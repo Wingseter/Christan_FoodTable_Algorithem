@@ -71,7 +71,7 @@ def available_student_insert():
     # 카운터 업데이트
     grade_selection = student[index]['grade']
     count_grade[grade_selection - 1] -= 1
-    for i, grade in enumerate(all_grade[grade_selection]):
+    for i, grade in enumerate(all_grade[grade_selection - 1]):
         if student[index]['id'] == grade['id']:
            grade.pop(i)
 
@@ -111,23 +111,6 @@ def ColorConvert(color_hex):
 ##################################################################################################################################################
 ##################################################################################################################################################
 
-# 자리 추가
-seatInsertSql = ("""
-INSERT INTO seat(date ,seat, stu_id)
-VALUES(?, ?, ?);
-""")
-
-# 자리 빼기
-deleteInsertSql = ("""
-DELETE FROM seat WHERE date = ? AND seat = ? AND stu_id = ?
-""")
-
-# 과거 같이 했던 사람들 찾기
-pastSearchSql = ("""
-SELECT stu_id FROM seat WHERE (seat.date, seat.seat) IN (
-    SELECT date, seat FROM seat WHERE stu_id = ? 
-);
-""")
 
 # 학생 테이블 만들기
 studentTableCreateSql = ("""
@@ -172,11 +155,67 @@ idSearchSql = ("""
     SELECT id FROM student WHERE name = ? AND grade = ? AND church = ?
 """)
 
+
+# 자리 추가
+seatInsertSql = ("""
+INSERT INTO seat(date ,seat, stu_id)
+VALUES(?, ?, ?);
+""")
+
+# 자리 빼기
+deleteInsertSql = ("""
+DELETE FROM seat WHERE date = ? AND seat = ? AND stu_id = ?
+""")
+
+# 과거 같이 했던 사람들 찾기
+pastSearchSql = ("""
+SELECT stu_id FROM seat WHERE (seat.date, seat.seat) IN (
+    SELECT date, seat FROM seat WHERE stu_id = ? 
+);
+""")
+
+createDateSql = ("""
+INSERT INTO date(date)
+SELECT ?
+WHERE NOT EXISTS(SELECT 1 FROM date WHERE date = ?);
+""")
+
+getDateIdSql = ("""
+SELECT id FROM date WHERE date = ?
+""")
+
+getAllDateSql = ("""
+SELECT date FROM date
+""")
+cur.executescript(studentTableCreateSql)
+
+cur.executescript(seatTableCreateSql)
+
+cur.executescript(dateTableCreateSql)
+
+
 # 데이터 저장하기
 def save_seat_to_db():
     all_table
 
+    save_date = save_date_txt.get()
+    cur.execute(getDateIdSql, (save_date,))
+    find = cur.fetchall()
 
+    if len(find) != 0:
+        msgbox.showinfo("중복 불가", "이미 존재하는 날짜요")
+        return
+
+    cur.execute(createDateSql, (save_date, save_date))
+    cur.execute(getDateIdSql, (save_date,))
+    date_id = cur.fetchall()
+
+    for i, table in enumerate(all_table): 
+        for people in table:
+            cur.execute(seatInsertSql, (date_id[0][0], i+1, people['id'][0]))
+
+    history_date_list.insert(END, save_date)
+    conn.commit()
 ##################################################################################################################################################
 ##################################################################################################################################################
 # 엑셀 데이터 불러오기 ############################################################################################################################
@@ -184,14 +223,6 @@ def save_seat_to_db():
 ##################################################################################################################################################
 
 def load_excel_data():
-
-    # sqlite 데이터베이스 연결하기
-    cur.executescript(studentTableCreateSql)
-
-    cur.executescript(seatTableCreateSql)
-
-    cur.executescript(dateTableCreateSql)
-
 
     filename = "명부샘플.xlsx"
     std_book = openpyxl.load_workbook(filename, read_only=True)
@@ -298,7 +329,7 @@ def load_excel_data():
 
         table_list_box.insert(j, listbox_temp)
         listbox_temp.pack(side="left", padx=(0, 10))
-
+    conn.commit()
 ####################################################################################################################################################
 ####################################################################################################################################################
 # 가능한 학생 계산기#################################################################################################################################
@@ -422,8 +453,6 @@ def super_seat_dice_rolling():
             
             grade_pick = all_grade[grade_to_insert - 1]
             available_search = availableStudent(each_table, grade_pick)
-            print(available_search)
-            print(len(available_search))
             random_pick = available_search[random.randint(0,len(available_search)-1)]
 
             for stu in student:
@@ -501,15 +530,22 @@ history_date_list = Listbox(
 history_scroll_bar.config(command=history_date_list.yview)
 history_date_list.pack(side="top")
 
-
-Button(history_frame, text="최종 결정 및 저장", command=save_seat_to_db).pack(side="left", padx=10)
+save_date_txt = Entry(history_frame)
+save_date_txt.pack(side="top", ipady= 2)
+Button(history_frame, text="최종 결정 및 저장", command=save_seat_to_db).pack(side="top", padx=10)
 
 load_history_btn = Button(
-    history_frame, text="불러오기", padx=5, pady=3, width=7)
+    history_frame, text="불러오기", width=7)
 delete_history_btn = Button(
-    history_frame, text="기록 삭제", padx=5, pady=3, width=7)
-load_history_btn.pack(side="top")
-delete_history_btn.pack(side="top")
+    history_frame, text="기록 삭제", width=7)
+load_history_btn.pack(side="top", padx=5, pady=(10, 3))
+delete_history_btn.pack(side="top", padx=5, pady=3, )
+
+# 히스토리 창 초기화
+cur.execute(getAllDateSql)
+date_list = cur.fetchall()
+for date in date_list:
+    history_date_list.insert(END, date[0])
 
 # 메인창-> 우측 -> 전채 학생 목록
 all_frame = LabelFrame(
