@@ -4,6 +4,8 @@ import sqlite3
 import openpyxl
 import random
 import tkinter.messagebox as msgbox
+from tkinter import filedialog
+
 root = Tk()
 
 root.title("자리 배치 v1.0")
@@ -82,7 +84,7 @@ def available_student_insert():
 
     available_student_action()
 
-# 강제 삽입 어라?
+# 강제 삽입
 def force_student_insert():
     pass
 
@@ -104,7 +106,11 @@ def ColorConvert(color_hex):
     }
     return(color_dic[color_hex])
 
-
+def add_file_dialog():
+    files = filedialog.askopenfilenames(title="이미지 파일을 선택하세요", \
+        filetype=(("Excel 파일", "*.xlsx"), ("모든 파일", "*.*")), \
+        initialdir="C:/")
+    return files
 ##################################################################################################################################################
 ##################################################################################################################################################
 # SQL Collection #################################################################################################################################
@@ -224,8 +230,9 @@ def save_seat_to_db():
 
 def load_excel_data():
 
-    filename = "명부샘플.xlsx"
-    std_book = openpyxl.load_workbook(filename, read_only=True)
+    filename = add_file_dialog()
+    dest_path_txt.configure(text=filename[0])
+    std_book = openpyxl.load_workbook(str(filename[0]), read_only=True)
     std_sheet = std_book.worksheets[0]
 
     clear_all_student_list()
@@ -508,7 +515,7 @@ Label(brain_frame)
 
 dest_path_txt = Entry(brain_frame)
 dest_path_txt.pack(side="left", fill="x", expand=True, ipady=4)
-Button(brain_frame, text="파일 불러오기", command=load_excel_data).pack(side="left", padx=(10, 0))
+Button(brain_frame, text="파일 선택", command=load_excel_data).pack(side="left", padx=(10, 0))
 Button(brain_frame, text="파일 내보내기", state="disable").pack(
     side="left", padx=(10, 100))
 
