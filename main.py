@@ -1,4 +1,4 @@
-from tkinter import *
+from tkinter import Tk, Menu, PhotoImage, Label, Frame, LabelFrame, Button, Entry, Scrollbar, Listbox, GROOVE, Canvas, END
 import tkinter.ttk as ttk
 import sqlite3
 import openpyxl
