@@ -5,6 +5,7 @@ import openpyxl
 import random
 import tkinter.messagebox as msgbox
 from tkinter import filedialog
+import copy
 
 root = Tk()
 
@@ -33,7 +34,11 @@ dbpath = "foodTable.db"
 conn = sqlite3.connect(dbpath)
 cur = conn.cursor()
 
-#예외 처리
+# 백업
+super_backup_student = list()
+super_backup_count_grade = list()
+super_backup_all_table = list()
+super_backup_all_grade = list()
 
 ##################################################################################################################################################
 ##################################################################################################################################################
@@ -43,6 +48,7 @@ cur = conn.cursor()
 
 # 모두 초기화
 def reset_all():
+    count_grade.clear
     clear_available_student_list()
     clear_all_student_list()
     for btn in table_list_btn:
@@ -67,7 +73,7 @@ def reset_all():
 # 학생이 있는가??
 def insert_student_first():
     if(len(student) == 0):
-        msgbox.showinfo("작업 실패", "파일 로딩을 먼저 해주세요")
+        msgbox.showinfo("작업 실패", "작업할 학생이 없습니다")
         return 0
     else:
         return 1
@@ -219,19 +225,43 @@ SELECT stu_id FROM seat WHERE (seat.date, seat.seat) IN (
 );
 """)
 
+# 날짜 저장 
 createDateSql = ("""
 INSERT INTO date(date)
 SELECT ?
 WHERE NOT EXISTS(SELECT 1 FROM date WHERE date = ?);
 """)
 
+# 날짜의 ID 찾기
 getDateIdSql = ("""
 SELECT id FROM date WHERE date = ?
 """)
 
+# 모든 날짜 반환
 getAllDateSql = ("""
 SELECT date FROM date
 """)
+
+# 해당 날짜의 모든 자리 목록 불러오기
+getStudentInDateSql=("""
+SELECT seat.seat, student.id, name, grade, church FROM seat INNER JOIN student on seat.stu_id = student.id WHERE stu_id IN (
+    SELECT stu_id FROM seat WHERE seat.date = (
+        SELECT id FROM date WHERE date = ?
+    )
+);
+""")
+
+# 해당 날짜의 모든 데이터 삭제하기
+deleteAllDateInfoSql=("""
+DELETE FROM seat WHERE seat.date IN
+(SELECT id FROM date WHERE date = ?);
+""")
+
+# 해당 날짜 삭제하기
+deleteDateInfoSql=("""
+DELETE FROM date WHERE date = ?
+""")
+
 cur.executescript(studentTableCreateSql)
 
 cur.executescript(seatTableCreateSql)
@@ -244,6 +274,10 @@ def save_seat_to_db():
     all_table
 
     save_date = save_date_txt.get()
+    if save_date == "":
+        msgbox.showinfo("어라라?", "저장할 이름 입력 안했눈뎅")
+        return
+
     cur.execute(getDateIdSql, (save_date,))
     find = cur.fetchall()
 
@@ -264,10 +298,118 @@ def save_seat_to_db():
 
 # 데이터 불러오기
 def load_seat_from_db():
-    pass
+    select = history_date_list.get(history_date_list.curselection())
+    cur.execute(getStudentInDateSql, (select,))
+    stu_data = cur.fetchall()
+    print(stu_data)
+    if len(student) != 0:
+        answer = msgbox.askquestion("초기화 경고", "모든 데이터가 날라갑니다. 정말로 불러올까요?")
+
+        if answer == 'no':
+            return
+
+    reset_all()
+    for stu in stu_data:
+        student.append({'id': stu[1], 'Name': stu[2], 'grade': stu[3], 'church': stu[4]})
+    
+    all_grade
+
+    grade_1 = list() # 1학년
+    grade_2 = list() # 2학년
+    grade_3 = list() # 3학년
+    grade_4 = list() # 4학년
+    grade_5 = list() # 5학년
+    grade_6 = list() # 6학년
+    grade_7 = list() # 7학년
+
+    # 학년별로 분류
+    for item in student:
+        if item['grade'] == 1:
+            grade_1.append(item)
+        elif item['grade'] == 2:
+            grade_2.append(item)
+        elif item['grade'] == 3:
+            grade_3.append(item)
+        elif item['grade'] == 4:
+            grade_4.append(item)
+        elif item['grade'] == 5:
+            grade_5.append(item)
+        elif item['grade'] == 6:
+            grade_6.append(item)
+        elif item['grade'] == 7:
+            grade_7.append(item)
+        else:
+            print("error")
+
+    all_grade.append(grade_1)
+    all_grade.append(grade_2)
+    all_grade.append(grade_3)
+    all_grade.append(grade_4)
+    all_grade.append(grade_5)
+    all_grade.append(grade_6)
+    all_grade.append(grade_7)
+
+    for i, grade in enumerate(all_grade):
+        count_grade.append(len(grade))
+    # 테이블 개수
+    table_count = max(count_grade)
+
+    # 테이블 분류
+    all_table
+
+    for count in range(table_count):
+        all_table.append(list())
+
+    table_list_box
+    table_list_frame
+    table_list_btn
+
+    # 테이블 목록들
+    for j in range(1, table_count+1):
+
+        # 테이블 목록 5개씩 1줄
+        if j % 5 == 1:
+            each_five_table = LabelFrame(t_frame, text=str(
+                j) + "번 ~" + str(j + 4) + "번 테이블", relief="ridge")
+
+            each_five_table.pack(side="top")
+            table_list_frame.append(each_five_table)
+
+        listbox_temp = Listbox(
+            each_five_table, selectmode="extended", height=7)
+
+        select_table_btn = Button(
+            each_five_table, text=str(j) + "번", width="3")
+        select_table_btn.configure(command=lambda button=select_table_btn: table_button_action(button))
+        select_table_btn.pack(side="left", ipady="40")
+        table_list_btn
+
+        table_list_box.insert(j, listbox_temp)
+        listbox_temp.pack(side="left", padx=(0, 10))
+    
+    # 테이블에 집어넣기
+    for stu in stu_data:
+        temp = student.pop(0)
+        table_list_box[stu[0] - 1].insert(END, str(temp['grade']) + "/" +temp['Name'] + "/"+ temp['church'])
+    
+    for grade in all_grade:
+        grade.clear()
+    student.clear()
+    all_grade.clear()
+
+    
+
 # 데이터 삭제하기
 def delete_history():
-    pass
+    select = history_date_list.get(history_date_list.curselection())
+    history_date_list.delete(history_date_list.curselection())
+    cur.execute(deleteAllDateInfoSql, (select,))
+    cur.execute(deleteDateInfoSql, (select,))
+    conn.commit()
+    
+# def edit_history():
+#     pass
+
 ##################################################################################################################################################
 ##################################################################################################################################################
 # 엑셀 데이터 불러오기 ############################################################################################################################
@@ -284,8 +426,12 @@ def load_excel_data():
             return
     
     filename = add_file_dialog()
+
+    if filename == "":
+        return
     dest_path_txt.configure(text=filename[0])
     std_book = openpyxl.load_workbook(str(filename[0]), read_only=True)
+
     std_sheet = std_book.worksheets[0]
 
     clear_all_student_list()
@@ -480,6 +626,43 @@ def available_student_action():
 def menucmd1():
     print("menu command")
 
+
+def backup_precess():
+    clear_available_student_list()
+    clear_all_student_list()
+    global table_list_box
+    
+    for table_list in table_list_box:
+        table_list.delete(0, END)
+
+
+    global student
+    global count_grade
+    global all_table
+    global all_grade
+    global super_backup_all_grade
+    global super_backup_student
+    global super_backup_all_table
+    global super_backup_count_grade
+
+    available_student.clear
+    student.clear
+    count_grade.clear
+    all_table.clear
+    all_grade.clear
+
+    student = copy.deepcopy(super_backup_student)
+    count_grade = copy.deepcopy(super_backup_count_grade)
+    all_table = copy.deepcopy(super_backup_all_table)
+    all_grade = copy.deepcopy(super_backup_all_grade)
+
+    for stu in student:
+        all_student_list.insert(END, str(stu['grade']) + "/" +stu['Name'] + "/"+ stu['church'])
+
+    for i, table in enumerate(all_table):
+        for stu in table:
+            table_list_box[i].insert(END, str(stu['grade']) + "/" +stu['Name'] + "/"+ stu['church'])
+
 # 자동 편성 주사위
 def super_seat_dice_rolling():
     if insert_student_first() == 0:
@@ -489,7 +672,17 @@ def super_seat_dice_rolling():
     table_list_box
     all_table
     all_grade
+    global super_backup_all_table
+    global super_backup_all_grade
+    global super_backup_student
+    global super_backup_count_grade
+    
+    super_backup_all_table = copy.deepcopy(all_table)
+    super_backup_count_grade = copy.deepcopy(count_grade)
+    super_backup_student = copy.deepcopy(student)
+    super_backup_all_grade = copy.deepcopy(all_grade)
 
+    
     # 모든 테이블에 돌아가면서
     for table_num, each_table in enumerate(all_table):
         if count_grade.count(max(count_grade)) == 7:
@@ -519,6 +712,12 @@ def super_seat_dice_rolling():
             
             grade_pick = all_grade[grade_to_insert - 1]
             available_search = availableStudent(each_table, grade_pick)
+            if (len(available_search) == 0):
+                backup_precess()
+                super_seat_dice_rolling()
+                #msgbox.showinfo("주사위 아웃!!!", "주사위를 다시 굴리세요")
+                return
+
             random_pick = available_search[random.randint(0,len(available_search)-1)]
 
             for stu in student:
@@ -602,11 +801,14 @@ save_date_txt.pack(side="top", ipady= 2)
 Button(history_frame, text="최종 결정 및 저장", command=save_seat_to_db).pack(side="top", padx=10)
 
 load_history_btn = Button(
-    history_frame, text="불러오기", width=7)
+    history_frame, text="불러오기", width=7, command = load_seat_from_db)
 delete_history_btn = Button(
-    history_frame, text="기록 삭제", width=7)
+    history_frame, text="기록 삭제", width=7, command = delete_history)
+# edit_history_btn = Button(
+#     history_frame, text="수정하기", width=7, command = edit_history)
 load_history_btn.pack(side="top", padx=5, pady=(10, 3))
 delete_history_btn.pack(side="top", padx=5, pady=3, )
+# edit_history_btn.pack(side="top", padx = 5, pady = 4,)
 
 # 히스토리 창 초기화
 cur.execute(getAllDateSql)
