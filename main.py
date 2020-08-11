@@ -25,6 +25,8 @@ table_list_box = list() # 테이블 전체 리스트 박스 모음
 all_table = list()  # 모든 테이블 전체 데이터
 is_student_loaded = False # 학생 로딩
 all_grade = list() # 모든 학년
+table_list_frame = list() # 테이블 리스트 박스 프레임
+table_list_btn = list() # 테이블 리스트 박스 버튼
 
 # DB 연결 목록
 dbpath = "foodTable.db"
@@ -39,10 +41,33 @@ cur = conn.cursor()
 ##################################################################################################################################################
 ##################################################################################################################################################
 
+# 모두 초기화
+def reset_all():
+    clear_available_student_list()
+    clear_all_student_list()
+    for btn in table_list_btn:
+        btn.pack_forget()
+    for frame in table_list_frame:
+        frame.pack_forget()
+    for listbox in table_list_box:
+        listbox.pack_forget()
+    table_list_btn.clear
+    table_list_frame.clear
+    table_list_box.clear
+
+    student.clear
+    available_student.clear
+    for grade in all_grade:
+        grade.clear
+    all_grade.clear
+
+    selected_table.configure(text="?")
+
+
 # 학생이 있는가??
 def insert_student_first():
     if(len(student) == 0):
-        msgbox.showinfo("작업 실패", "작업할 학생이 없습니다.")
+        msgbox.showinfo("작업 실패", "파일 로딩을 먼저 해주세요")
         return 0
     else:
         return 1
@@ -64,11 +89,6 @@ def clear_all_student_list():
 def clear_available_student_list():
     available_student_list.delete(0, END)
 
-def all_student_pop():
-    pass
-
-def all_student_insert():
-    pass
 
 def available_student_insert():
     if insert_student_first() == 0:
@@ -100,8 +120,6 @@ def available_student_insert():
 
     all_table[table_num].append(student.pop(index))
     all_student_list.delete(index)
-
-    
 
     available_student_action()
 
@@ -230,7 +248,7 @@ def save_seat_to_db():
     find = cur.fetchall()
 
     if len(find) != 0:
-        msgbox.showinfo("중복 불가", "이미 존재하는 날짜요")
+        msgbox.showinfo("중복 불가", "이미 존재하는 이름입니다.")
         return
 
     cur.execute(createDateSql, (save_date, save_date))
@@ -243,6 +261,13 @@ def save_seat_to_db():
 
     history_date_list.insert(END, save_date)
     conn.commit()
+
+# 데이터 불러오기
+def load_seat_from_db():
+    pass
+# 데이터 삭제하기
+def delete_history():
+    pass
 ##################################################################################################################################################
 ##################################################################################################################################################
 # 엑셀 데이터 불러오기 ############################################################################################################################
@@ -250,7 +275,14 @@ def save_seat_to_db():
 ##################################################################################################################################################
 
 def load_excel_data():
+    if len(student) != 0:
+        answer = msgbox.askquestion("초기화 경고", "모든 데이터가 날라갑니다. 파일을 새로 로딩할까요?")
 
+        if answer == 'yes':
+            reset_all()
+            load_excel_data()
+            return
+    
     filename = add_file_dialog()
     dest_path_txt.configure(text=filename[0])
     std_book = openpyxl.load_workbook(str(filename[0]), read_only=True)
@@ -336,6 +368,8 @@ def load_excel_data():
         all_table.append(list())
 
     table_list_box
+    table_list_frame
+    table_list_btn
 
     # 테이블 목록들
     for j in range(1, table_count+1):
@@ -346,6 +380,7 @@ def load_excel_data():
                 j) + "번 ~" + str(j + 4) + "번 테이블", relief="ridge")
 
             each_five_table.pack(side="top")
+            table_list_frame.append(each_five_table)
 
         listbox_temp = Listbox(
             each_five_table, selectmode="extended", height=7)
@@ -354,6 +389,7 @@ def load_excel_data():
             each_five_table, text=str(j) + "번", width="3")
         select_table_btn.configure(command=lambda button=select_table_btn: table_button_action(button))
         select_table_btn.pack(side="left", ipady="40")
+        table_list_btn
 
         table_list_box.insert(j, listbox_temp)
         listbox_temp.pack(side="left", padx=(0, 10))
@@ -499,6 +535,7 @@ def super_seat_dice_rolling():
                     table_list_box[table_num].insert(END, pick)
                     each_table.append(student.pop(index))
                     all_student_list.delete(index)
+    clear_available_student_list()
  
 
     
@@ -586,31 +623,14 @@ all_frame.pack(side="right", fill="both", padx=5, pady=5)
 all_scroll_bar = Scrollbar(all_frame)
 all_scroll_bar.pack(side="right", fill="y")
 all_student_list = Listbox(
-    all_frame, selectmode="extended", height=30, yscrollcommand=all_scroll_bar.set)
+    all_frame, selectmode="extended", height=40, yscrollcommand=all_scroll_bar.set)
 all_scroll_bar.config(command=all_student_list.yview)
 all_student_list.pack(side="top")
 
-# 학생 추가 삭제
-name_text = Entry(all_frame, width=17)
-grade_values = list(range(1, 9))
-grade_text = ttk.Combobox(
-    all_frame, width=14, height=8, values=grade_values)
-grade_text.set("학년 선택")
-church_text = Entry(all_frame, width=17)
+# student_add_btn = Button(
+#     all_frame, text="강제 삽입", padx=5, pady=3, width=7, command=force_student_insert)
+# student_add_btn.pack()
 
-student_add_btn = Button(
-    all_frame, text="학생 추가", padx=5, pady=3, width=7)
-student_del_btn = Button(
-    all_frame, text="학생 삭제", padx=5, pady=3, width=7)
-
-Label(all_frame, text="이름").pack(side="top")
-name_text.pack(side="top")
-Label(all_frame, text="학년").pack(side="top")
-grade_text.pack(side="top")
-Label(all_frame, text="교회").pack(side="top")
-church_text.pack(side="top")
-student_add_btn.pack(side="left")
-student_del_btn.pack(side="right")
 
 # 메인창-> 가운데측 -> 자리배치 가능한 목록
 available_frame = LabelFrame(
