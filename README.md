@@ -1,7 +1,10 @@
-# Christan_FoodTable_Algorithem
+![background.png](https://github.com/Wingseter/Christan_FoodTable_Algorithem/blob/master/background.png)
+# Christan_FoodTable_Algorithem✝
 [충격] [실화] 신학교의 식사는 매우 까다롭다. 규칙이 없으면 밥을 못먹는단다 그들이 밥을 먹울수 있도록 도와주자
+## Screen Shot🖼
+![capcha.png](https://github.com/Wingseter/Christan_FoodTable_Algorithem/blob/master/capcha.PNG)
 
-# 문제 정의
+### 문제 정의🙄
 신학교에는 1학년~ 7학년 총 7개의 학년이 있다. 이 모두가 화합을 이루도록 서로 소통하기 위해 만찬을 여는대 이 만찬의 자리배치가 여간 까다로운것이 아니다.
 
 프로그램을 만들어 그들의 자리배치를 할수 있게 하자
