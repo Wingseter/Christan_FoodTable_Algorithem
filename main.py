@@ -9,8 +9,9 @@ import copy
 
 root = Tk()
 
-root.title("자리 배치 v1.0")
+root.title("자리 배치 v1.3-beta")
 root.geometry("1480x750")
+
 
 
 ##################################################################################################################################################
@@ -431,6 +432,8 @@ def load_excel_data():
             reset_all()
             load_excel_data()
             return
+    else:
+        reset_all()
     
     filename = add_file_dialog()
 
@@ -767,12 +770,13 @@ menu_file.add_command(label="파일 내보내기", state="disable")
 menu_file.add_command(label="끝내기", command=root.quit)
 menu.add_cascade(label="파일", menu=menu_file)
 
+def show_maker():
+    msgbox.showinfo("프로그램 정보", "자리배치 ver 1.3\n CopyRight(c) 2020 Wingseter and 전태영 All Right Reserved")
+
 # 메뉴->편집
 menu_edit = Menu(menu, tearoff=0)
-menu_edit.add_radiobutton(label="op1")
-menu_edit.add_radiobutton(label="op2")
-menu_edit.add_radiobutton(label="op3")
-menu.add_cascade(label="편집", menu=menu_edit)
+menu_edit.add_command(label="프로그램 정보", command=show_maker)
+menu.add_cascade(label="도움말", menu=menu_edit)
 
 # 메인창 ->하단-> 편집창
 brain_frame = LabelFrame(
