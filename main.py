@@ -9,7 +9,7 @@ from tkinter import filedialog
 root = Tk()
 
 root.title("자리 배치 v1.0")
-root.geometry("1480x820")
+root.geometry("1480x750")
 
 
 ##################################################################################################################################################
@@ -31,12 +31,29 @@ dbpath = "foodTable.db"
 conn = sqlite3.connect(dbpath)
 cur = conn.cursor()
 
+#예외 처리
+
 ##################################################################################################################################################
 ##################################################################################################################################################
 # 기타 기능 모음  #################################################################################################################################
 ##################################################################################################################################################
 ##################################################################################################################################################
 
+# 학생이 있는가??
+def insert_student_first():
+    if(len(student) == 0):
+        msgbox.showinfo("작업 실패", "작업할 학생이 없습니다.")
+        return 0
+    else:
+        return 1
+
+# 테이블을 선택 했는가?
+def select_table_first():
+    if(selected_table.cget("text") == "?"):
+        msgbox.showinfo("작업 실패", "테이블을 먼저 선택하세요")
+        return 0
+    else:
+        return 1
 
 # 전체 학생 삭제
 def clear_all_student_list():
@@ -54,6 +71,10 @@ def all_student_insert():
     pass
 
 def available_student_insert():
+    if insert_student_first() == 0:
+        return
+    if select_table_first() == 0:
+        return
     student
     all_table
     count_grade
@@ -75,7 +96,7 @@ def available_student_insert():
     count_grade[grade_selection - 1] -= 1
     for i, grade in enumerate(all_grade[grade_selection - 1]):
         if student[index]['id'] == grade['id']:
-           grade.pop(i)
+           all_grade[grade_selection-1].pop(i)
 
     all_table[table_num].append(student.pop(index))
     all_student_list.delete(index)
@@ -425,6 +446,8 @@ def menucmd1():
 
 # 자동 편성 주사위
 def super_seat_dice_rolling():
+    if insert_student_first() == 0:
+        return
     count_grade
     student
     table_list_box
@@ -645,7 +668,6 @@ t_frame.bind("<Configure>", scroll_configure)
 
 root.config(menu=menu)
 
-root.resizable(False, False)
 root.mainloop()
 
 conn.commit()
