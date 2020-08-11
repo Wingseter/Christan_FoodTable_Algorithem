@@ -55,8 +55,11 @@ def reset_all():
         btn.pack_forget()
     for frame in table_list_frame:
         frame.pack_forget()
+    for table_list in table_list_box:
+        table_list.delete(0, END)
     for listbox in table_list_box:
         listbox.pack_forget()
+        
     table_list_btn.clear
     table_list_frame.clear
     table_list_box.clear
@@ -429,7 +432,8 @@ def load_excel_data():
 
     if filename == "":
         return
-    dest_path_txt.configure(text=filename[0])
+    dest_path_txt.delete(0, END)
+    dest_path_txt.insert(0, str(filename[0]))
     std_book = openpyxl.load_workbook(str(filename[0]), read_only=True)
 
     std_sheet = std_book.worksheets[0]
