@@ -59,7 +59,7 @@ def reset_all():
         table_list.delete(0, END)
     for listbox in table_list_box:
         listbox.pack_forget()
-        
+
     table_list_btn.clear
     table_list_frame.clear
     table_list_box.clear
@@ -246,12 +246,16 @@ SELECT date FROM date
 """)
 
 # 해당 날짜의 모든 자리 목록 불러오기
+# getStudentInDateSql=("""
+# SELECT seat.seat, student.id, name, grade, church FROM seat INNER JOIN student on seat.stu_id = student.id WHERE student.id = (
+#     SELECT stu_id FROM seat WHERE seat.date = (
+#         SELECT id FROM date WHERE date = ?
+#     )
+# );
+# """)
 getStudentInDateSql=("""
-SELECT seat.seat, student.id, name, grade, church FROM seat INNER JOIN student on seat.stu_id = student.id WHERE stu_id IN (
-    SELECT stu_id FROM seat WHERE seat.date = (
-        SELECT id FROM date WHERE date = ?
-    )
-);
+    SELECT seat, student.id, name, grade, church FROM student LEFT OUTER JOIN seat ON student.id = seat.stu_id WHERE seat.date = 
+        (SELECT id FROM date WHERE date = ?);
 """)
 
 # 해당 날짜의 모든 데이터 삭제하기
@@ -304,7 +308,7 @@ def load_seat_from_db():
     select = history_date_list.get(history_date_list.curselection())
     cur.execute(getStudentInDateSql, (select,))
     stu_data = cur.fetchall()
-    print(stu_data)
+
     if len(student) != 0:
         answer = msgbox.askquestion("초기화 경고", "모든 데이터가 날라갑니다. 정말로 불러올까요?")
 
