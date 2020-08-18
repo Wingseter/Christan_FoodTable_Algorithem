@@ -151,9 +151,14 @@ def ColorConvert(color_hex):
         'FFFFCBCB': 5,  # 연빨강
         '00000000': 6,  # 하양
         'FFFFD8FF': 7,  # 핑크
-        'FFFFFFFF': 6   # 엑셀 실수 방지용 하얀색
+        'FFFFFFFF': 6,  # 엑셀 실수 방지용 하얀색
+        'FFFF0000': 8   # 간부만 쓸수 있는 빨강색
     }
-    return(color_dic[color_hex])
+    picked = color_dic[color_hex]
+    if not str(picked).isdigit:
+        msgbox.showinfo("엑셀 오류", "엑셀 색상을 수정하고 다시 실행하세요")
+        picked = 8
+    return picked
 
 def add_file_dialog():
     files = filedialog.askopenfilenames(title="이미지 파일을 선택하세요", \
@@ -329,6 +334,7 @@ def load_seat_from_db():
     grade_5 = list() # 5학년
     grade_6 = list() # 6학년
     grade_7 = list() # 7학년
+    grade_8 = list() # 간부
 
     # 학년별로 분류
     for item in student:
@@ -346,6 +352,8 @@ def load_seat_from_db():
             grade_6.append(item)
         elif item['grade'] == 7:
             grade_7.append(item)
+        elif item['grade'] == 8:
+            grade_8.append(item)
         else:
             print("error")
 
@@ -356,6 +364,7 @@ def load_seat_from_db():
     all_grade.append(grade_5)
     all_grade.append(grade_6)
     all_grade.append(grade_7)
+    all_grade.append(grade_8)
 
     for i, grade in enumerate(all_grade):
         count_grade.append(len(grade))
@@ -485,6 +494,7 @@ def load_excel_data():
     grade_5 = list() # 5학년
     grade_6 = list() # 6학년
     grade_7 = list() # 7학년
+    grade_8 = list() # 7학년
 
     # 학년별로 분류
     for item in student:
@@ -501,6 +511,8 @@ def load_excel_data():
         elif item['grade'] == 6:
             grade_6.append(item)
         elif item['grade'] == 7:
+            grade_7.append(item)
+        elif item['grade'] == 8:
             grade_7.append(item)
         else:
             print("error")
@@ -566,7 +578,9 @@ def timeMachine(stuHash, table, students):
         for past in past_db_list: # for-2
             for stu in students: # for-3
                 try:
-                    if stu['id'][0] == past[0]:
+                    if stu['grade'] == 8:
+                        pass
+                    elif stu['id'][0] == past[0]:
                         stuHash.remove(past[0])
                 except Exception:
                     continue
@@ -577,7 +591,7 @@ def gradeChecker(stuHash, table, students):
     for stu in students:
         for member in table:
             try:
-                if stu['grade'] == 200:
+                if stu['grade'] == 8:
                     pass
                 elif stu['grade'] == member['grade']:
                     stuHash.remove(stu['id'][0])
@@ -590,7 +604,9 @@ def gradeChecker(stuHash, table, students):
 def churchChecker(stuHash, table, students):
     for stu in students:
         for member in table:
-            if stu['church'] == member['church']:
+            if stu['grade'] == 8:
+                pass
+            elif stu['church'] == member['church']:
                 try:
                     stuHash.remove(stu['id'][0])
                 except Exception:
@@ -722,11 +738,16 @@ def super_seat_dice_rolling():
 
             
             grade_pick = all_grade[grade_to_insert - 1]
+
+            if not grade_pick:
+                return
+
             available_search = availableStudent(each_table, grade_pick)
+
             if (len(available_search) == 0):
+                print(all_grade)
                 backup_precess()
                 super_seat_dice_rolling()
-                #msgbox.showinfo("주사위 아웃!!!", "주사위를 다시 굴리세요")
                 return
 
             random_pick = available_search[random.randint(0,len(available_search)-1)]
